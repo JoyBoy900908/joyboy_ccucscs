@@ -1,0 +1,768 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"/><title>Tomasulo Algorithm詳細</title><style>
+/* cspell:disable-file */
+/* webkit printing magic: print all background colors */
+html {
+	-webkit-print-color-adjust: exact;
+}
+* {
+	box-sizing: border-box;
+	-webkit-print-color-adjust: exact;
+}
+
+html,
+body {
+	margin: 0;
+	padding: 0;
+}
+@media only screen {
+	body {
+		margin: 2em auto;
+		max-width: 900px;
+		color: rgb(55, 53, 47);
+	}
+}
+
+body {
+	line-height: 1.5;
+	white-space: pre-wrap;
+}
+
+a,
+a.visited {
+	color: inherit;
+	text-decoration: underline;
+}
+
+.pdf-relative-link-path {
+	font-size: 80%;
+	color: #444;
+}
+
+h1,
+h2,
+h3 {
+	letter-spacing: -0.01em;
+	line-height: 1.2;
+	font-weight: 600;
+	margin-bottom: 0;
+}
+
+/* Override strong tags inside headings to maintain consistent weight */
+h1 strong,
+h2 strong,
+h3 strong {
+	font-weight: 600;
+}
+
+.page-title {
+	font-size: 2.5rem;
+	font-weight: 700;
+	margin-top: 0;
+	margin-bottom: 0.75em;
+}
+
+h1 {
+	font-size: 1.875rem;
+	margin-top: 1.875rem;
+}
+
+h2 {
+	font-size: 1.5rem;
+	margin-top: 1.5rem;
+}
+
+h3 {
+	font-size: 1.25rem;
+	margin-top: 1.25rem;
+}
+
+.source {
+	border: 1px solid #ddd;
+	border-radius: 3px;
+	padding: 1.5em;
+	word-break: break-all;
+}
+
+.callout {
+	border-radius: 10px;
+	padding: 1rem;
+}
+
+figure {
+	margin: 1.25em 0;
+	page-break-inside: avoid;
+}
+
+figcaption {
+	opacity: 0.5;
+	font-size: 85%;
+	margin-top: 0.5em;
+}
+
+mark {
+	background-color: transparent;
+}
+
+.indented {
+	padding-left: 1.5em;
+}
+
+hr {
+	background: transparent;
+	display: block;
+	width: 100%;
+	height: 1px;
+	visibility: visible;
+	border: none;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+img {
+	max-width: 100%;
+}
+
+@media only print {
+	img {
+		max-height: 100vh;
+		object-fit: contain;
+	}
+
+	table.collection-content {
+		width: 100%;
+		table-layout: fixed;
+	}
+
+	table.collection-content th,
+	table.collection-content td {
+		overflow-wrap: anywhere;
+	}
+
+	table.collection-content td > .user,
+	table.collection-content td > time {
+		white-space: pre-wrap;
+	}
+}
+
+@page {
+	margin: 1in;
+}
+
+.collection-content-wrapper {
+	overflow-x: auto;
+}
+
+@media only print {
+	.collection-content-wrapper {
+		overflow-x: visible;
+	}
+}
+
+.collection-content {
+	font-size: 0.875rem;
+}
+
+.collection-content td {
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.column-list {
+	display: flex;
+	gap: 46px;
+}
+
+.column {
+	min-width: 0;
+	overflow: hidden;
+}
+
+.column > *:first-child {
+	margin-top: 0;
+}
+
+.table_of_contents-item {
+	display: block;
+	font-size: 0.875rem;
+	line-height: 1.3;
+	padding: 0.125rem;
+}
+
+.table_of_contents-indent-1 {
+	margin-left: 1.5rem;
+}
+
+.table_of_contents-indent-2 {
+	margin-left: 3rem;
+}
+
+.table_of_contents-indent-3 {
+	margin-left: 4.5rem;
+}
+
+.table_of_contents-link {
+	text-decoration: none;
+	opacity: 0.7;
+	border-bottom: 1px solid rgba(55, 53, 47, 0.18);
+}
+
+table,
+th,
+td {
+	border: 1px solid rgba(55, 53, 47, 0.09);
+}
+
+table {
+	border-collapse: collapse;
+	border-left: none;
+	border-right: none;
+}
+
+th,
+td {
+	font-weight: normal;
+	padding: 0.25em 0.5em;
+	line-height: 1.5;
+	min-height: 1.5em;
+	text-align: left;
+}
+
+th {
+	color: rgba(55, 53, 47, 0.6);
+}
+
+ol,
+ul {
+	margin: 0;
+	margin-block-start: 0.6em;
+	margin-block-end: 0.6em;
+}
+
+li > ol:first-child,
+li > ul:first-child {
+	margin-block-start: 0.6em;
+}
+
+ul > li {
+	list-style: disc;
+}
+
+ul.to-do-list {
+	padding-inline-start: 0;
+}
+
+ul.to-do-list > li {
+	list-style: none;
+}
+
+.to-do-children-checked {
+	text-decoration: line-through;
+	opacity: 0.375;
+}
+
+ul.toggle > li {
+	list-style: none;
+}
+
+ul {
+	padding-inline-start: 1.7em;
+}
+
+ul > li {
+	padding-left: 0.1em;
+}
+
+ol {
+	padding-inline-start: 1.6em;
+}
+
+ol.numbered-list.numbered-list-digits-2 {
+	padding-inline-start: 2em;
+}
+
+ol.numbered-list.numbered-list-digits-3plus {
+	padding-inline-start: 2.4em;
+}
+
+ol > li {
+	padding-left: 0.2em;
+}
+
+.mono ol {
+	padding-inline-start: 2em;
+}
+
+.mono ol > li {
+	text-indent: -0.4em;
+}
+
+.toggle {
+	padding-inline-start: 0em;
+	list-style-type: none;
+}
+
+/* Indent toggle children */
+.toggle > li > details {
+	padding-left: 1.7em;
+}
+
+.toggle > li > details > summary {
+	margin-left: -1.1em;
+}
+
+.selected-value {
+	display: inline-block;
+	padding: 0 0.5em;
+	background: rgba(206, 205, 202, 0.5);
+	border-radius: 3px;
+	margin-right: 0.5em;
+	margin-top: 0.3em;
+	margin-bottom: 0.3em;
+	white-space: nowrap;
+}
+
+.collection-title {
+	display: inline-block;
+	margin-right: 1em;
+}
+
+.page-description {
+	margin-bottom: 2em;
+}
+
+.simple-table {
+	margin-top: 1em;
+	font-size: 0.875rem;
+	empty-cells: show;
+}
+.simple-table td {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table th {
+	height: 29px;
+	min-width: 120px;
+}
+
+.simple-table-header-color {
+	background: rgb(247, 246, 243);
+	color: black;
+}
+.simple-table-header {
+	font-weight: 500;
+}
+
+time {
+	opacity: 0.5;
+}
+
+.icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	max-width: 1.2em;
+	max-height: 1.2em;
+	text-decoration: none;
+	vertical-align: text-bottom;
+	margin-right: 0.5em;
+}
+
+img.icon {
+	border-radius: 3px;
+}
+
+.callout img.notion-static-icon {
+	width: 1em;
+	height: 1em;
+}
+
+.callout p {
+	margin: 0;
+}
+
+.callout h1,
+.callout h2,
+.callout h3 {
+	margin: 0 0 0.6rem;
+}
+
+.user-icon {
+	width: 1.5em;
+	height: 1.5em;
+	border-radius: 100%;
+	margin-right: 0.5rem;
+}
+
+.user-icon-inner {
+	font-size: 0.8em;
+}
+
+.text-icon {
+	border: 1px solid #000;
+	text-align: center;
+}
+
+.page-cover-image {
+	display: block;
+	object-fit: cover;
+	width: 100%;
+	max-height: 30vh;
+}
+
+.page-header-icon {
+	font-size: 3rem;
+	margin-bottom: 1rem;
+}
+
+.page-header-icon-with-cover {
+	margin-top: -0.72em;
+	margin-left: 0.07em;
+}
+
+.page-header-icon img {
+	border-radius: 3px;
+}
+
+.link-to-page {
+	margin: 1em 0;
+	padding: 0;
+	border: none;
+	font-weight: 500;
+}
+
+p > .user {
+	opacity: 0.5;
+}
+
+td > .user,
+td > time {
+	white-space: nowrap;
+}
+
+input[type="checkbox"] {
+	transform: scale(1.5);
+	margin-right: 0.6em;
+	vertical-align: middle;
+}
+
+p {
+	margin-top: 0.5em;
+	margin-bottom: 0.5em;
+}
+
+.image {
+	border: none;
+	margin: 1.5em 0;
+	padding: 0;
+	border-radius: 0;
+	text-align: center;
+}
+
+.code,
+code {
+	background: rgba(135, 131, 120, 0.15);
+	border-radius: 3px;
+	padding: 0.2em 0.4em;
+	border-radius: 3px;
+	font-size: 85%;
+	tab-size: 2;
+}
+
+code {
+	color: #eb5757;
+}
+
+.code {
+	padding: 1.5em 1em;
+}
+
+.code-wrap {
+	white-space: pre-wrap;
+	word-break: break-all;
+}
+
+.code > code {
+	background: none;
+	padding: 0;
+	font-size: 100%;
+	color: inherit;
+}
+
+blockquote {
+	font-size: 1em;
+	margin: 1em 0;
+	padding-left: 1em;
+	border-left: 3px solid rgb(55, 53, 47);
+}
+
+blockquote.quote-large {
+	font-size: 1.25em;
+}
+
+.bookmark {
+	text-decoration: none;
+	max-height: 8em;
+	padding: 0;
+	display: flex;
+	width: 100%;
+	align-items: stretch;
+}
+
+.bookmark-title {
+	font-size: 0.85em;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	height: 1.75em;
+	white-space: nowrap;
+}
+
+.bookmark-text {
+	display: flex;
+	flex-direction: column;
+}
+
+.bookmark-info {
+	flex: 4 1 180px;
+	padding: 12px 14px 14px;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-between;
+}
+
+.bookmark-image {
+	width: 33%;
+	flex: 1 1 180px;
+	display: block;
+	position: relative;
+	object-fit: cover;
+	border-radius: 1px;
+}
+
+.bookmark-description {
+	color: rgba(55, 53, 47, 0.6);
+	font-size: 0.75em;
+	overflow: hidden;
+	max-height: 4.5em;
+	word-break: break-word;
+}
+
+.bookmark-href {
+	font-size: 0.75em;
+	margin-top: 0.25em;
+}
+
+.sans { font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol"; }
+.code { font-family: "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace; }
+.serif { font-family: Lyon-Text, Georgia, ui-serif, serif; }
+.mono { font-family: iawriter-mono, Nitti, Menlo, Courier, monospace; }
+.pdf .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK JP'; }
+.pdf:lang(zh-CN) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK SC'; }
+.pdf:lang(zh-TW) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK TC'; }
+.pdf:lang(ko-KR) .sans { font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI Variable Display", "Segoe UI", Helvetica, "Apple Color Emoji", "Noto Sans Arabic", "Noto Sans Hebrew", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol", 'Twemoji', 'Noto Color Emoji', 'Noto Sans CJK KR'; }
+.pdf .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .code { font-family: Source Code Pro, "SFMono-Regular", Menlo, Consolas, "PT Mono", "Liberation Mono", Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.pdf .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK JP'; }
+.pdf:lang(zh-CN) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK SC'; }
+.pdf:lang(zh-TW) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK TC'; }
+.pdf:lang(ko-KR) .serif { font-family: PT Serif, Lyon-Text, Georgia, ui-serif, serif, 'Twemoji', 'Noto Color Emoji', 'Noto Serif CJK KR'; }
+.pdf .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK JP'; }
+.pdf:lang(zh-CN) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK SC'; }
+.pdf:lang(zh-TW) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK TC'; }
+.pdf:lang(ko-KR) .mono { font-family: PT Mono, iawriter-mono, Nitti, Menlo, Courier, monospace, 'Twemoji', 'Noto Color Emoji', 'Noto Sans Mono CJK KR'; }
+.highlight-default {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.highlight-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.highlight-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.highlight-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.highlight-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.highlight-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.highlight-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.highlight-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.highlight-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.highlight-default_background {
+	color: rgba(44, 44, 43, 1);
+}
+.highlight-gray_background {
+	background: rgba(42, 28, 0, 0.07);
+}
+.highlight-brown_background {
+	background: rgba(139, 46, 0, 0.086);
+}
+.highlight-orange_background {
+	background: rgba(224, 101, 1, 0.129);
+}
+.highlight-yellow_background {
+	background: rgba(211, 168, 0, 0.137);
+}
+.highlight-teal_background {
+	background: rgba(0, 100, 45, 0.09);
+}
+.highlight-blue_background {
+	background: rgba(0, 124, 215, 0.094);
+}
+.highlight-purple_background {
+	background: rgba(102, 0, 178, 0.078);
+}
+.highlight-pink_background {
+	background: rgba(197, 0, 93, 0.086);
+}
+.highlight-red_background {
+	background: rgba(223, 22, 0, 0.094);
+}
+.block-color-default {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray {
+	color: rgba(125, 122, 117, 1);
+	fill: rgba(125, 122, 117, 1);
+}
+.block-color-brown {
+	color: rgba(159, 118, 90, 1);
+	fill: rgba(159, 118, 90, 1);
+}
+.block-color-orange {
+	color: rgba(210, 123, 45, 1);
+	fill: rgba(210, 123, 45, 1);
+}
+.block-color-yellow {
+	color: rgba(203, 148, 52, 1);
+	fill: rgba(203, 148, 52, 1);
+}
+.block-color-teal {
+	color: rgba(80, 148, 110, 1);
+	fill: rgba(80, 148, 110, 1);
+}
+.block-color-blue {
+	color: rgba(56, 125, 201, 1);
+	fill: rgba(56, 125, 201, 1);
+}
+.block-color-purple {
+	color: rgba(154, 107, 180, 1);
+	fill: rgba(154, 107, 180, 1);
+}
+.block-color-pink {
+	color: rgba(193, 76, 138, 1);
+	fill: rgba(193, 76, 138, 1);
+}
+.block-color-red {
+	color: rgba(207, 81, 72, 1);
+	fill: rgba(207, 81, 72, 1);
+}
+.block-color-default_background {
+	color: inherit;
+	fill: inherit;
+}
+.block-color-gray_background {
+	background: rgba(240, 239, 237, 1);
+}
+.block-color-brown_background {
+	background: rgba(245, 237, 233, 1);
+}
+.block-color-orange_background {
+	background: rgba(251, 235, 222, 1);
+}
+.block-color-yellow_background {
+	background: rgba(249, 243, 220, 1);
+}
+.block-color-teal_background {
+	background: rgba(232, 241, 236, 1);
+}
+.block-color-blue_background {
+	background: rgba(229, 242, 252, 1);
+}
+.block-color-purple_background {
+	background: rgba(243, 235, 249, 1);
+}
+.block-color-pink_background {
+	background: rgba(250, 233, 241, 1);
+}
+.block-color-red_background {
+	background: rgba(252, 233, 231, 1);
+}
+.select-value-color-default { background-color: rgba(42, 28, 0, 0.07); }
+.select-value-color-gray { background-color: rgba(28, 19, 1, 0.11); }
+.select-value-color-brown { background-color: rgba(127, 51, 0, 0.156); }
+.select-value-color-orange { background-color: rgba(196, 88, 0, 0.203); }
+.select-value-color-yellow { background-color: rgba(209, 156, 0, 0.282); }
+.select-value-color-green { background-color: rgba(0, 96, 38, 0.156); }
+.select-value-color-blue { background-color: rgba(0, 118, 217, 0.203); }
+.select-value-color-purple { background-color: rgba(92, 0, 163, 0.141); }
+.select-value-color-pink { background-color: rgba(183, 0, 78, 0.152); }
+.select-value-color-red { background-color: rgba(206, 24, 0, 0.164); }
+
+.checkbox {
+	display: inline-flex;
+	vertical-align: text-bottom;
+	width: 16;
+	height: 16;
+	background-size: 16px;
+	margin-left: 2px;
+	margin-right: 5px;
+}
+
+.checkbox-on {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20width%3D%2216%22%20height%3D%2216%22%20fill%3D%22%2358A9D7%22%2F%3E%0A%3Cpath%20d%3D%22M6.71429%2012.2852L14%204.9995L12.7143%203.71436L6.71429%209.71378L3.28571%206.2831L2%207.57092L6.71429%2012.2852Z%22%20fill%3D%22white%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+
+.checkbox-off {
+	background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%2216%22%20height%3D%2216%22%20viewBox%3D%220%200%2016%2016%22%20fill%3D%22none%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%3E%0A%3Crect%20x%3D%220.75%22%20y%3D%220.75%22%20width%3D%2214.5%22%20height%3D%2214.5%22%20fill%3D%22white%22%20stroke%3D%22%2336352F%22%20stroke-width%3D%221.5%22%2F%3E%0A%3C%2Fsvg%3E");
+}
+	
+</style></head><body><article id="376b15c9-45ab-80ea-b7db-f4c17e9852dd" class="page sans"><header><h1 class="page-title" dir="auto">Tomasulo Algorithm詳細</h1><p class="page-description" dir="auto"></p></header><div class="page-body"><div style="display:contents" dir="auto"><h1 id="376b15c9-45ab-8067-bed5-d20a7e3575d7" class="">📑 計算機結構：Chapter 3 記憶體存取相依性與 Tomasulo 三大核心組件 (Slides 92 - 94)</h1></div><div style="display:contents" dir="auto"><blockquote id="376b15c9-45ab-8094-83df-ce377ff8ba49" class="">💡 <strong>Notion 考前衝刺提示</strong>：<br/>暫存器的名稱（暫存器編號，如 <code>F2</code>, <code>F4</code>）在指令解碼（Decode）階段就已經百分之百確定；但<strong>記憶體位址（如 </strong><code><strong>0(R1)</strong></code><strong>）在算出來之前，硬體根本不知道它指向哪裡</strong>！這就是為什麼記憶體去別名化（Memory Disambiguation）會成為現代高速 CPU 最複雜、也最常考的設計難題！</blockquote></div><div style="display:contents" dir="auto"><h2 id="376b15c9-45ab-80df-a2f7-d6cc2fb1ad5f" class="">🛑 Section 1: 記憶體指令交錯發射的 Hazard 鐵律 (Slide 92)</h2></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-8022-b5dc-c5351acc8fe9" class="">當處理器嘗試在管線中<strong>打亂、並重疊執行</strong> <code>Load</code> 與 <code>Store</code> 指令時，萬一這兩道指令<strong>存取到同一個實體記憶體位址（Same address）</strong>，就會爆發嚴重的記憶體危險（Memory Hazards）。</p></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-805b-b363-ebc2d1ba2f6b" class="">考試時，若要分析兩道記憶體指令交錯（Interchanging）會不會發生危險，請死記以下三大鐵律：</p></div><div style="display:contents" dir="auto"><script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha512-7Z9J3l1+EYfeaPKcGXu3MS/7T+w19WtKQY/n+xzmw4hZhJ9tyYmcUS+4QqAlzhicE5LAfMQSF3iFTK9bQdTxXg==" crossorigin="anonymous" referrerPolicy="no-referrer"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" integrity="sha512-tN7Ec6zAFaVSG3TpNAKtk4DOHNpSwKHxxrsiw4GHKESGPs5njn/0sMCUMl2svV4wo4BK/rCP7juYz+zx+l6oeQ==" crossorigin="anonymous" referrerPolicy="no-referrer"/><pre id="376b15c9-45ab-808f-9587-cabadaaf9d5d" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">                           【 記憶體指令亂序交錯的三大危機 】
+
+      RAW (Read After Write)       WAR (Write After Read)       WAW (Write After Write)
+         【 Store $\rightarrow$ Load 】                 【 Load $\rightarrow$ Store 】                 【 Store $\rightarrow$ Store 】
+
+           原本先寫、後讀               原本先讀、後寫               原本先寫、後寫
+                 │                            │                            │
+             (亂序調換)                   (亂序調換)                   (亂序調換)
+                 ▼                            ▼                            ▼
+           讀取指令跑在前方             寫入指令跑在前方             第二道寫入跑在前方
+        ❌ 讀到「舊/髒」資料！        ❌ 覆蓋掉「正要讀」的值！    ❌ 記憶體最終數值錯亂！</code></pre></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-8070-a81e-f8dcd254809f" class="">1. WAR (Write After Read) 記憶體危險</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-808d-9773-c4c721e87689" class="bulleted-list"><li style="list-style-type:disc"><strong>原始程式順序（Program Order）</strong>：<strong>先 Load、後 Store</strong>。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80fa-8b04-cdf8da35b2ab" class="bulleted-list"><li style="list-style-type:circle"><em>範例</em>：<div style="display:contents" dir="auto"><pre id="376b15c9-45ab-8045-a00b-e2ad3ba8e4c0" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">LW  R2, 0(R1)  ; 1. 先讀取記憶體 0(R1) 的舊值
+SW  0(R1), R3  ; 2. 後寫入新值 R3 到 0(R1)</code></pre></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-806b-8024-d4fc5b463a12" class="bulleted-list"><li style="list-style-type:disc"><strong>亂序交換（Interchanging）後的慘劇</strong>：<br/>如果 <code>SW</code> 跑得比 <code>LW</code> 快，提早改寫了 <code>0(R1)</code> 的資料，導致排在後面的 <code>LW</code> 讀到了 <code>R3</code> 的新值。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8024-852e-c55680212ecf" class="bulleted-list"><li style="list-style-type:circle"><strong>後果</strong>：<code>LW</code> 讀到了不該讀的「未來新資料」，觸發 <strong>WAR Hazard</strong>。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-806b-b518-eb25b927f48d" class="">2. RAW (Read After Write) 記憶體危險</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80e1-83a0-f8efa75a5838" class="bulleted-list"><li style="list-style-type:disc"><strong>原始程式順序（Program Order）</strong>：<strong>先 Store、後 Load</strong>。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8022-abbc-d56902637fb0" class="bulleted-list"><li style="list-style-type:circle"><em>範例</em>：<div style="display:contents" dir="auto"><pre id="376b15c9-45ab-80d7-aaf5-d327777b22e7" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">SW  0(R1), R3  ; 1. 先寫入 R3 到 0(R1)
+LW  R2, 0(R1)  ; 2. 後讀取 0(R1) 的最新值</code></pre></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80b6-bd38-e04ab4cb68af" class="bulleted-list"><li style="list-style-type:disc"><strong>亂序交換（Interchanging）後的慘劇</strong>：<br/>如果 <code>LW</code> 跑到了 <code>SW</code> 的前面先執行，它去記憶體抓資料時，<code>SW</code> 還沒把最新資料寫入，因此 <code>LW</code> 抓到了「過期的舊資料」。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80b9-aefd-fc7aee34cad2" class="bulleted-list"><li style="list-style-type:circle"><strong>後果</strong>：<code>LW</code> 讀到了錯誤的髒數據（Dirty data），觸發 <strong>RAW Hazard</strong>。這是最常見且致命的<strong>真資料相依性（True memory dependence）</strong>。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-80ae-9ed4-f720c2a73cf6" class="">3. WAW (Write After Write) 記憶體危險</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8014-ae97-c47e342cac88" class="bulleted-list"><li style="list-style-type:disc"><strong>原始程式順序（Program Order）</strong>：<strong>先 Store、後 Store</strong>。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80c4-8519-eccc5a79bafa" class="bulleted-list"><li style="list-style-type:circle"><em>範例</em>：<div style="display:contents" dir="auto"><pre id="376b15c9-45ab-8007-b1d2-c9efceb6407a" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">SW  0(R1), R3  ; 1. 先寫入 R3 到 0(R1)
+SW  0(R1), R4  ; 2. 後寫入 R4 到 0(R1) （預期記憶體最終留下 R4）</code></pre></div></li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-804a-a22b-c6287f92a074" class="bulleted-list"><li style="list-style-type:disc"><strong>亂序交換（Interchanging）後的慘劇</strong>：<br/>如果第二個 <code>SW</code>（寫入 R4）跑得比較快、先完成了；結果隨後才被慢吞吞的第一個 <code>SW</code>（寫入 R3）給大筆覆蓋。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-803d-a410-f23e490a8da2" class="bulleted-list"><li style="list-style-type:circle"><strong>後果</strong>：記憶體在該位址留下的最終數據變成了 <code>R3</code>，觸發 <strong>WAW Hazard</strong>。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h2 id="376b15c9-45ab-8079-a9f4-f2cc623f5e8d" class="">🛡️ Section 2: 硬體安全防線：依序計算有效位址 (Slide 92)</h2></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-8083-8833-e5558b153a1e" class="">為了在亂序執行（Out-of-Order Execution）的混亂世界中確保記憶體資料百分之百正確，Tomasulo 演算法築起了一道鋼鐵防線：</p></div><div style="display:contents" dir="auto"><blockquote id="376b15c9-45ab-8093-a314-f90610b744a9" class="">🎯 <strong>Tomasulo 記憶體鐵律（必背簡答題答案）</strong>：<br/><strong>「所有的 Load 和 Store 指令，其『有效位址計算（Effective Address Calculation）』這一步，必須嚴格按照原始的『程式順序（Program Order）』來依序進行。」</strong></blockquote></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-80fc-b486-ff3cc48ee941" class="">💡 為什麼這個簡單的規定能消除威脅？</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80e7-b6bb-ff1d0153b84e" class="bulleted-list"><li style="list-style-type:disc"><strong>位址透明化</strong>：只要全天下所有的 Load 和 Store 都乖乖按照順序排隊把自己的位址（如 <code>Regs[R1] + Offset</code>）算出來，硬體就能<strong>立刻知道哪些指令撞到了同一個位址</strong>（即 Alias / 別名現象）。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8087-85f6-f6c950e74e37" class="bulleted-list"><li style="list-style-type:disc"><strong>安全排程</strong>：一旦位址被計算出來並記錄在 Load/Store Buffer 中，硬體就可以進行動態安全檢查。<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-805e-a6cc-ea817ee6c295" class="bulleted-list"><li style="list-style-type:circle"><em>例如</em>：如果發現後面有一道 Load 與前面還沒執行的 Store 撞位址（RAW 威脅），硬體會強制這道 Load <strong>在 Buffer 中暫停</strong>，直到 Store 把值算出來並透過 CDB 廣播，或者等到 Store 寫入記憶體為止。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><h2 id="376b15c9-45ab-80b4-9bb1-f98269742e5c" class="">🔧 Section 3: Tomasulo 演算法的兩大底層底牌技術 (Slide 93)</h2></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-803e-8281-f0c7c29a9c48" class="">投影片第 93 頁提到了兩個隱藏在背後的關鍵底層手法，它們是消滅暫存器相依性的物理基礎：</p></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-8086-9d70-ec918011cb40" class="numbered-list" start="1"><li><strong>暫存器虛擬化（Renaming of architectural registers）</strong>：<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8099-ae49-cda604fb271b" class="bulleted-list"><li style="list-style-type:disc">將架構上有限的虛擬暫存器（如 MIPS 的 32 個浮點數暫存器），動態對應、重命名到一組<strong>更大、容量更多的實體暫存器集合</strong>（在 Tomasulo 中，這個集合就是分散在各個保留站（Reservation Stations）以及 <strong>Load/Store Buffer</strong> 裡的儲存空間）。</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-8022-9aae-f20b50f19898" class="numbered-list" start="2"><li><strong>來源運算元緩衝技術（Buffering of source operands）</strong>：<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-802a-b777-eb9c0cbb71b7" class="bulleted-list"><li style="list-style-type:disc">只要來源運算元在 CDB 上被廣播、或是存在於暫存器中，保留站就會<strong>立刻把這個數值複製並緩衝（Buffer）進自己的座位裡</strong>。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80e3-891f-c8d3e4ab976a" class="bulleted-list"><li style="list-style-type:disc"><strong>好處</strong>：一旦數值被拷貝進保留站，後續任何指令去改寫原始暫存器，都絕對不會影響到這個已經出發的指令。這完美切斷了暫存器的 WAR（反相依性）鎖定。</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><h2 id="376b15c9-45ab-806a-8a7d-d9ca0c269919" class="">🏆 Section 4: 現代 CPU 靈魂：Tomasulo 三大核心技術組件 (Slide 94)</h2></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-80be-a564-cb009f46fcc7" class="">下週一如果考出「請列出 Tomasulo 演算法的三大關鍵技術組件（Key Components）」這道申論/多選題，請務必精準回答以下三個專有名詞：</p></div><div style="display:contents" dir="auto"><pre id="376b15c9-45ab-8017-b663-e9cebbc70488" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">                      ┌────────────────────────────────────────┐
+                      │    Tomasulo&#x27;s Algorithm 3 Pillars      │
+                      └──────────────────┬─────────────────────┘
+         ┌───────────────────────────────┼──────────────────────────────┐
+         ▼                               ▼                              ▼
+  Dynamic Scheduling             Register Renaming             Memory Disambiguation
+   【 動態指令排程 】            【 暫存器動態重新命名 】          【 動態記憶體去別名化 】
+
+ 利用保留站與資料就緒度，        透過保留站的實體座位代號        利用 Load/Store 緩衝區追蹤
+ 擺脫編譯器靜態排程限制，        （Tags）作為虛擬名稱，          記憶體有效位址，防止亂序
+ 動態打亂順序執行（OoO）。       完美消滅 WAR 與 WAW 阻礙。      記憶體讀寫撞車（RAW/WAR/WAW）。</code></pre></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-80e2-887e-e315dc8d9575" class="">1. Dynamic Scheduling (動態指令排程)</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80bc-8610-ed29ade89830" class="bulleted-list"><li style="list-style-type:disc"><strong>原理</strong>：硬體在執行時，根據「資料是否就緒（Data availability）」與「硬體資源是否有空缺」來決定指令何時執行，而不是傻傻地按照程式碼的外觀順序。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80a5-8046-cdef18e24bdc" class="bulleted-list"><li style="list-style-type:disc"><strong>效果</strong>：最大化管線的重疊率（Overlap），減少 Stall 的時間。</li></ul></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-800e-9373-c7306874c33b" class="">2. Register Renaming (暫存器動態重新命名)</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-807d-b624-d9c2ab6c2aef" class="bulleted-list"><li style="list-style-type:disc"><strong>原理</strong>：利用保留站（Reservation Stations）的座位代號（Tag）來代替暫存器的名稱。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8092-b391-dfe79fdc8e82" class="bulleted-list"><li style="list-style-type:disc"><strong>效果</strong>：徹底消滅由暫存器撞名引起的 <strong>WAR（反相依性）</strong> 與 <strong>WAW（輸出相依性）</strong> 假阻礙。</li></ul></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-802c-ae9b-d800d04ca2fb" class="">3. Dynamic Memory Disambiguation (動態記憶體去別名化 / 消除衝突)</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80eb-b027-efb9dffb277a" class="bulleted-list"><li style="list-style-type:disc"><strong>原理</strong>：利用 Load/Store Buffer 紀錄記憶體位址，並在亂序執行中即時進行位址的比對（Address comparison）。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8012-9f06-c25f0c16462c" class="bulleted-list"><li style="list-style-type:disc"><strong>效果</strong>：確保多道 Load 與 Store 指令在存取同一個記憶體位址時，依然能完美遵循 RAW、WAR、WAW 的物理先後順序，消除記憶體別名帶來的數據混亂。</li></ul></div><div style="display:contents" dir="auto"><h2 id="376b15c9-45ab-807c-acf0-c1e93cd61768" class="">🎯 考前模擬：名詞解釋與觀念簡答特訓題</h2></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-802a-b021-f5e4b11c9c40" class="">為了確保你下週一拿到這部分的滿分，請在腦海中推導以下兩道模擬考題：</p></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-807a-83f8-da3ac9147089" class="">📝 模擬考題 1（記憶體危險分析與解決方案）</h3></div><div style="display:contents" dir="auto"><blockquote id="376b15c9-45ab-805c-9935-ebaf73afc9fd" class=""><strong>Q：請閱讀以下兩道指令，回答問題。</strong><div style="display:contents" dir="auto"><pre id="376b15c9-45ab-8078-9a28-c08ad6aa4740" class="code code-wrap"><code style="white-space:pre-wrap;word-break:break-all">SW   0(R1), R2  ; 指令 A：將 R2 寫入記憶體 0(R1)
+LW   R3, 0(R1)  ; 指令 B：從記憶體 0(R1) 讀取資料到 R3</code></pre></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-8004-9e35-f7d5cb9e4e07" class="numbered-list" start="1"><li>這兩道指令在原始程式順序中，存在哪一種<strong>記憶體相依性（Memory dependence）</strong>？若在管線中試圖將指令 B 調換到指令 A 之前執行，會觸發哪一種 <strong>Memory Hazard</strong>？</li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-80db-ac71-e448a3b1fb9f" class="numbered-list" start="2"><li>Tomasulo 演算法是如何透過硬體防線，來確保這兩道指令不會發生讀寫衝突的？</li></ol></div></blockquote></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-80ca-a537-e4458ccd5a29" class="">💡 詳細教學解答：</h3></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-8001-96e1-cea37a94ab7c" class="numbered-list" start="1"><li><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8069-b60c-eabdc5df6ff7" class="bulleted-list"><li style="list-style-type:disc">由於指令 B 需要讀取指令 A 寫入記憶體 <code>0(R1)</code> 的數值，它們存在 <strong>RAW (Read After Write) 真資料相依性</strong>（常稱為 Flow Dependence）。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80ae-b3fb-e011766aba0f" class="bulleted-list"><li style="list-style-type:disc">若將指令 B 調換到指令 A 之前執行，指令 B 會在 A 寫入前就讀取 <code>0(R1)</code> 的值，導致讀到舊的髒數據。這會觸發 <strong>RAW Hazard</strong>。</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><ol type="1" id="376b15c9-45ab-80e2-b3ea-fbb0cd872d3a" class="numbered-list" start="2"><li><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8004-9982-c2b8682cd574" class="bulleted-list"><li style="list-style-type:disc">Tomasulo 規定所有的 Load 和 Store 指令，其 <strong>Effective Address Calculation（有效位址計算）必須嚴格按程式順序（Program order）依序進行</strong>。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80cc-be50-c3df703a30f2" class="bulleted-list"><li style="list-style-type:disc">因此，指令 A 算出位址 <code>0+Regs[R1]</code> 並存入 Store Buffer 後，指令 B 隨後計算出同一個位址 <code>0+Regs[R1]</code> 並存入 Load Buffer。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8088-8569-f156f7930ef1" class="bulleted-list"><li style="list-style-type:disc">此時，硬體會動態比對 Load Buffer 與 Store Buffer 中的目的地與來源位址。發現兩者相同（衝突）後，<strong>硬體會強制暫停指令 B 的第二步執行（讀取記憶體）</strong>，直到指令 A 的數值 R2 就緒並寫入記憶體（或透過廣播）後，指令 B 才被允許執行，從而完美消除了 RAW 衝突。</li></ul></div></li></ol></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-80ef-9a4f-cd0c4939da11" class="">📝 模擬考題 2（三大核心組件與技術關聯）</h3></div><div style="display:contents" dir="auto"><blockquote id="376b15c9-45ab-80bf-9134-e207e4b779ef" class=""><strong>Q：在 Tomasulo 演算法中，我們常說「Register Renaming」消滅了暫存器衝突，而「Memory Disambiguation」消滅了記憶體衝突。請簡述這兩個關鍵組件在「名稱命名與查找」上的本質差異。</strong></blockquote></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-808d-81f6-fdaad1abe3d2" class="">💡 詳細教學解答：</h3></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80bc-8f72-c82687c8aaff" class="bulleted-list"><li style="list-style-type:disc"><strong>Register Renaming（暫存器重新命名）</strong>：<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80fb-8eec-f15cf4fce6ce" class="bulleted-list"><li style="list-style-type:circle"><strong>本質</strong>：暫存器的「名字」（如 F0、F4）是<strong>靜態、顯性且固定</strong>的，在指令解碼（ID）階段就完全確定。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8033-9e82-e5f8f842b629" class="bulleted-list"><li style="list-style-type:circle"><strong>實現</strong>：硬體只需要在發射階段，直接查「暫存器狀態表（Qi）」並指派空的保留站（Reservation Station）作為新代號，即可完成重新命名，消除 WAR/WAW 威脅。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8020-83f6-df7e631e6486" class="bulleted-list"><li style="list-style-type:disc"><strong>Memory Disambiguation（記憶體去別名化）</strong>：<div style="display:contents" dir="auto"><ul id="376b15c9-45ab-8041-84bf-e19fe25399e5" class="bulleted-list"><li style="list-style-type:circle"><strong>本質</strong>：記憶體的「名字」（即記憶體實體位址，如 <code>8(R1)</code>）是<strong>動態、隱性且變動</strong>的。在有效位址計算完成之前，硬體根本無法預知兩道指令是否在存取同一個地方。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80e5-8ea8-cee31f821bc8" class="bulleted-list"><li style="list-style-type:circle"><strong>實現</strong>：硬體無法單靠發射階段進行重新命名，必須<strong>在執行階段（Execute Stage）按順序計算出有效位址</strong>，並在 Load/Store Buffer 中進行動態位址比對（Address Comparison）與阻擋（Stalling），才能保障讀寫順序正確。</li></ul></div></li></ul></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-80f2-b448-f72f8fc3bae4" class="">
+</p></div><div style="display:contents" dir="auto"><h3 id="376b15c9-45ab-8078-a8e3-ce1d1ae761cc" class="">💡 複習小總結</h3></div><div style="display:contents" dir="auto"><p id="376b15c9-45ab-80dd-a7f7-f2f6b22e157b" class="">這三頁投影片（Slides 92-94）是從「暫存器動態排程」跨向「記憶體動態排程」的關鍵過渡期。</p></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80ce-aedd-cd81af976b13" class="bulleted-list"><li style="list-style-type:disc">只要記住：<strong>暫存器用「保留站（RS）」改名，記憶體用「依序計算有效位址 + Load/Store Buffer 比對」來去別名化</strong>。</li></ul></div><div style="display:contents" dir="auto"><ul id="376b15c9-45ab-80d9-950c-ebc7450e623c" class="bulleted-list"><li style="list-style-type:disc">牢記這三大組件的名稱（Dynamic Scheduling、Register Renaming、Dynamic Memory Disambiguation），考試不論是出名詞解釋還是多選題，你都能瞬間拿到所有分數！</li></ul></div></div></article><span class="sans" style="font-size:14px;padding-top:2em"></span></body></html>
